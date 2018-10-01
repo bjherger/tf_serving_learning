@@ -11,3 +11,6 @@
 
 # Output files
 data/output/*
+
+# Saved models
+bin/b_*
