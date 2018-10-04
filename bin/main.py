@@ -8,15 +8,13 @@ Code template courtesy https://github.com/bjherger/Python-starter-repo
 import logging
 
 import pandas
-from keras.layers import Dense
-from keras.utils import np_utils
-from sklearn.datasets import load_iris
-from tensorflow.python.saved_model import builder as saved_model_builder, signature_constants, tag_constants
-
 # TODO Clean up imports
 import tensorflow as tf
-from keras import backend as K, Sequential
+from keras import backend as K, Sequential, Input, Model, losses, optimizers
+from keras.layers import Dense
+from keras.utils import np_utils
 from sklearn.preprocessing import LabelEncoder
+from tensorflow.python.saved_model import builder as saved_model_builder, signature_constants, tag_constants
 
 from bin import lib
 
@@ -36,14 +34,20 @@ def main():
     model_version = lib.get_batch_name()
     K.set_learning_phase(0)
 
+    dimm_1_shape = 1
+    dimm_2_shape = 1
+
     # Load data
     logging.info('Loading data')
 
     dataframe = pandas.read_csv("iris.csv", header=None)
     observations = dataframe.values
-    observations_x = observations[:, 0:4].astype(float)
+
+    observations_x1 = observations[:, 0:dimm_1_shape].astype(float)
+    observations_x2 = observations[:, dimm_1_shape:dimm_2_shape].astype(float)
     observations_y = observations[:, 4]
-    logging.debug('observations_x: {}'.format(observations_x))
+    logging.debug('observations_x1: {}'.format(observations_x1))
+    logging.debug('observations_x2: {}'.format(observations_x2))
     logging.debug('observations_y: {}'.format(observations_y))
 
     # One hot encode response
@@ -55,23 +59,37 @@ def main():
 
     # Create model
     logging.info('Creating model')
-    # TODO Switch to keras's functional API
-    model = Sequential()
-    model.add(Dense(8, input_dim=4, activation="relu"))
-    model.add(Dense(3, activation="softmax"))
 
-    model.compile(loss='categorical_crossentropy', optimizer="adam", metrics=['accuracy'])
-    model.fit(observations_x, one_hot_labels, batch_size=32)
+    input_layer = Input(shape=(dimm_1_shape,), name='x1_input')
+    layers = input_layer
+    layers = Dense(32)(layers)
+    layers = Dense(3)(layers)
 
-    # Create TF variables
-    logging.info('Creating TF variables')
-    serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
-    feature_configs = {'x': tf.FixedLenFeature(shape=[4], dtype=tf.float32), }
+    model = Model([input_layer], layers)
+
+    model.compile(loss=losses.categorical_crossentropy, optimizer='adam')
+
+    model.fit(observations_x1, one_hot_labels)
+
+    print(model.input)
+    print(model.inputs)
+    print(model.input_spec)
+
+    # Create TF variable x1
+    logging.info('Creating TF variable x1')
+    serialized_tf_example = tf.placeholder(tf.string, name='x1')
+    feature_configs = {'x1': tf.FixedLenFeature(shape=[dimm_1_shape], dtype=tf.float32), }
     tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+    x1 = tf.identity(tf_example['x1'], name='x1')  # use tf.identity() to assign name
 
-    x = tf.identity(tf_example['x'], name='x')  # use tf.identity() to assign name
-    y = model(x)
-    logging.info('tf x: {}'.format(x))
+    logging.info('Creating TF variable x2')
+    serialized_tf_example = tf.placeholder(tf.string, name='x2')
+    feature_configs = {'x2': tf.FixedLenFeature(shape=[dimm_2_shape], dtype=tf.float32), }
+    tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+    x2 = tf.identity(tf_example['x2'], name='x2')  # use tf.identity() to assign name
+
+    y = model([x1])
+    logging.info('tf x: {}'.format(x1))
     logging.info('tf y: {}'.format(y))
 
     # Build lookup table from prediction index to correct (string) label
@@ -87,9 +105,9 @@ def main():
     prediction_classes = OHE_index_to_string_lookup_table.lookup(tf.to_int64(indices))
 
     # Create tf variables
-    classification_inputs = tf.saved_model.utils.build_tensor_info(serialized_tf_example)
-    classification_outputs_classes = tf.saved_model.utils.build_tensor_info(prediction_classes)
-    classification_outputs_scores = tf.saved_model.utils.build_tensor_info(values)
+    # classification_inputs = tf.saved_model.utils.build_tensor_info(serialized_tf_example)
+    # classification_outputs_classes = tf.saved_model.utils.build_tensor_info(prediction_classes)
+    # classification_outputs_scores = tf.saved_model.utils.build_tensor_info(values)
 
     # Create keras signature
     classification_signature = tf.saved_model.signature_def_utils.classification_signature_def(
@@ -99,7 +117,7 @@ def main():
     )
 
     # Create tf_serving signature
-    prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"inputs": x}, {"prediction": y})
+    prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"x1": x1}, {"prediction": y})
 
     # Validate tf_serving signature
     valid_prediction_signature = tf.saved_model.signature_def_utils.is_valid_signature(prediction_signature)
@@ -130,6 +148,7 @@ def main():
     save_path = builder.save()
 
     return save_path
+
 
 # Main section
 if __name__ == '__main__':
