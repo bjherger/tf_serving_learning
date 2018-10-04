@@ -11,7 +11,7 @@ import pandas
 # TODO Clean up imports
 import tensorflow as tf
 from keras import backend as K, Sequential, Input, Model, losses, optimizers
-from keras.layers import Dense
+from keras.layers import Dense, Concatenate
 from keras.utils import np_utils
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.python.saved_model import builder as saved_model_builder, signature_constants, tag_constants
@@ -44,7 +44,7 @@ def main():
     observations = dataframe.values
 
     observations_x1 = observations[:, 0:dimm_1_shape].astype(float)
-    observations_x2 = observations[:, dimm_1_shape:dimm_2_shape].astype(float)
+    observations_x2 = observations[:, dimm_1_shape:dimm_2_shape+1].astype(float)
     observations_y = observations[:, 4]
     logging.debug('observations_x1: {}'.format(observations_x1))
     logging.debug('observations_x2: {}'.format(observations_x2))
@@ -60,16 +60,19 @@ def main():
     # Create model
     logging.info('Creating model')
 
-    input_layer = Input(shape=(dimm_1_shape,), name='x1_input')
-    layers = input_layer
+    input_layer1 = Input(shape=(dimm_1_shape,), name='x1_input')
+    input_layer2 = Input(shape=(dimm_2_shape,), name='x2_input')
+
+    input_layers = [input_layer1, input_layer2]
+    layers = Concatenate()(input_layers)
     layers = Dense(32)(layers)
     layers = Dense(3)(layers)
 
-    model = Model([input_layer], layers)
+    model = Model(input_layers, layers)
 
     model.compile(loss=losses.categorical_crossentropy, optimizer='adam')
 
-    model.fit(observations_x1, one_hot_labels)
+    model.fit([observations_x1, observations_x2], one_hot_labels)
 
     print(model.input)
     print(model.inputs)
