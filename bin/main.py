@@ -46,7 +46,8 @@ def main():
     input_layers = list()
 
     for index, data in enumerate(input_data):
-        logging.info('Creating input for x{}, with shape: {}: {}'.format(index, data.shape, data))
+        logging.info('Creating input for x{}, with shape: {}'.format(index, data.shape[1]))
+        logging.debug('x{}: {}'.format(index, data))
 
         input_layers.append(Input(shape=(data.shape[1],), name='x{}_input'.format(index)))
 
@@ -58,7 +59,7 @@ def main():
 
     model.compile(loss=losses.categorical_crossentropy, optimizer='adam')
 
-    model.fit(input_layers, one_hot_labels)
+    model.fit(input_data, one_hot_labels)
 
     # TODO Register input placholders
 
