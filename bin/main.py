@@ -10,7 +10,6 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.python.saved_model import signature_constants, signature_def_utils
 from tensorflow.python.saved_model.signature_def_utils_impl import classification_signature_def, predict_signature_def
 from tensorflow.python.saved_model.simple_save import simple_save
-from tensorflow.python.tools import saved_model_cli
 
 from bin import lib
 
@@ -105,7 +104,6 @@ def main():
     # Can now get signature w/ https://www.tensorflow.org/guide/saved_model#cli_to_inspect_and_execute_savedmodel
 
     # TODO Create tensorflow-serving signature
-    saved_model_cli
 
     # TODO validate signatures
 
