@@ -91,8 +91,9 @@ def main():
     tf_example = tf.parse_example(serialized_tf_example, feature_configs)
     x2 = tf.identity(tf_example['x2'], name='x2')  # use tf.identity() to assign name
 
-    y = model([x1])
-    logging.info('tf x: {}'.format(x1))
+    y = model([x1, x2])
+    logging.info('tf x1: {}'.format(x1))
+    logging.info('tf x2: {}'.format(x2))
     logging.info('tf y: {}'.format(y))
 
     # Build lookup table from prediction index to correct (string) label
