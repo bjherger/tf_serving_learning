@@ -92,9 +92,7 @@ def main():
     x2 = tf.identity(tf_example['x2'], name='x2')  # use tf.identity() to assign name
 
     y = model([x1, x2])
-
-    # TODO How about this? y = model(model.inputs)
-    # TODO This might skip the identify step though...
+    
     logging.info('tf x1: {}'.format(x1))
     logging.info('tf x2: {}'.format(x2))
     logging.info('tf y: {}'.format(y))
