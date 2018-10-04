@@ -92,6 +92,9 @@ def main():
     x2 = tf.identity(tf_example['x2'], name='x2')  # use tf.identity() to assign name
 
     y = model([x1, x2])
+
+    # TODO How about this? y = model(model.inputs)
+    # TODO This might skip the identify step though...
     logging.info('tf x1: {}'.format(x1))
     logging.info('tf x2: {}'.format(x2))
     logging.info('tf y: {}'.format(y))
@@ -121,7 +124,7 @@ def main():
     )
 
     # Create tf_serving signature
-    prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"x1": x1}, {"prediction": y})
+    prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"x1": x1, "x2": x2}, {"prediction": y})
 
     # Validate tf_serving signature
     valid_prediction_signature = tf.saved_model.signature_def_utils.is_valid_signature(prediction_signature)
