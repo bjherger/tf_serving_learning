@@ -22,34 +22,35 @@ def main():
     # Data setup
 
     logging.info('Loading data')
-    dimm_1_shape = 1
-    dimm_2_shape = 1
 
-    dataframe = pandas.read_csv("iris.csv", header=None)
-    observations = dataframe.values
-
-    observations_x1 = observations[:, 0:dimm_1_shape].astype(float)
-    observations_x2 = observations[:, dimm_1_shape:dimm_2_shape + 1].astype(float)
-    observations_y = observations[:, 4]
-    input_data = [observations_x1, observations_x2]
+    dataframe = pandas.read_csv("iris_with_header.csv")
+    numerical_cols = ['sepal_length', 'sepal_width']
+    input_data = list()
+    for col in numerical_cols:
+        input_data.append(dataframe[col].values)
 
     logging.info('OHE-ing response variable')
     encoder = LabelEncoder()
-    encoder.fit(observations_y)
-    encoded_Y = encoder.transform(observations_y)
+    encoder.fit(dataframe.values[:, 4])
+    encoded_Y = encoder.transform(dataframe.values[:, 4])
     one_hot_labels = np_utils.to_categorical(encoded_Y)
 
-    # TODO Model setup
-    # Create model
+    # Model setup
     logging.info('Creating model')
 
     input_layers = list()
 
-    for index, data in enumerate(input_data):
-        logging.info('Creating input for x{}, with shape: {}'.format(index, data.shape[1]))
-        logging.debug('x{}: {}'.format(index, data))
+    for col in numerical_cols:
+        logging.info('Creating input for {}'.format(col))
 
-        input_layers.append(Input(shape=(data.shape[1],), name='x{}_input'.format(index)))
+        if len(dataframe[col].shape) > 1:
+            shape = dataframe[col].shape[1]
+        else:
+            shape = 1
+
+        logging.info('Inferring variable {} has shape: {}'.format(col, shape))
+
+        input_layers.append(Input(shape=(shape,), name='{}_input'.format(col)))
 
     layers = Concatenate()(input_layers)
     layers = Dense(32)(layers)
@@ -61,7 +62,8 @@ def main():
 
     model.fit(input_data, one_hot_labels)
 
-    # TODO Register input placholders
+    # Register input placholders
+    # for
 
     # TODO Generate output tensor by feeding inputs into model
 
